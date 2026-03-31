@@ -1,98 +1,66 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🚀 Hệ Thống Xử Lý Race Condition
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Dự án mô phỏng hệ thống bán hàng chớp nhoáng (Flash Sale), giải quyết bài toán tranh chấp tài nguyên (Race Condition) khi có nhiều người dùng cùng tranh mua một số lượng sản phẩm giới hạn trong cùng một thời điểm.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🛠 Công Nghệ Sử Dụng
 
-## Description
+- **Backend:** NestJS (Node.js 20 Alpine)
+- **Database & ORM:** MySQL 8.0, Prisma
+- **Cache & In-memory DB:** Redis (Xử lý chốt đơn siêu tốc bằng lệnh Atomic)
+- **Message Queue:** Apache Kafka (Chạy ở chế độ KRaft, không dùng Zookeeper)
+- **Infrastructure:** Docker & Docker Compose
+- **Monitoring:** Kafka UI (Provectus)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 🏗 Kiến Trúc Hệ Thống (Hiện Tại)
 
-```bash
-$ npm install
-```
+Hệ thống áp dụng kiến trúc tách biệt luồng xử lý **Đồng bộ (Sync)** và **Bất đồng bộ (Async)** để tối ưu hiệu năng và bảo vệ Database:
 
-## Compile and run the project
+1.  **Tiếp nhận (Sync):** NestJS nhận request mua hàng từ người dùng.
+2.  **Giữ chỗ (Sync):** NestJS gọi lệnh `DECR` vào Redis. Vì Redis là single-thread, các request được xếp hàng và xử lý nguyên tử (Atomic), chặn đứng hoàn toàn lỗi bán lố (overselling).
+3.  **Hàng đợi (Async):** Nếu Redis báo giữ chỗ thành công, NestJS lập tức đẩy sự kiện `order_created` vào Kafka và phản hồi "Thành công" cho người dùng (Độ trễ < 10ms).
+4.  **Xử lý hậu cần (Async):** _(Sắp triển khai)_ Kafka Consumer sẽ đọc từ từ các sự kiện này và ghi dữ liệu an toàn xuống MySQL qua Prisma.
 
-```bash
-# development
-$ npm run start
+---
 
-# watch mode
-$ npm run start:dev
+## 📚 Tóm Tắt Bài Học & Tiến Độ
 
-# production mode
-$ npm run start:prod
-```
+### Giai đoạn 1: Triển khai Hạ tầng & Giữ chỗ bằng Redis
 
-## Run tests
+- Thiết lập môi trường local với `docker-compose` bao gồm MySQL, Redis, Kafka (KRaft mode).
+- Chuyển đổi từ TypeORM sang **Prisma** để tối ưu hóa việc quản lý schema và type-safe.
+- Xây dựng `RedisService` sử dụng thư viện `ioredis` để nạp tồn kho và gọi lệnh trừ đi 1 (`DECR`).
+- Sử dụng `@nestjs/config` và `joi` để validate biến môi trường (Environment variables) chặt chẽ, chuẩn Enterprise.
+- **Kết quả:** Vượt qua bài test dùng `fetch` bắn 10 requests cùng 1 mili-giây. Hệ thống chỉ cho phép đúng 5 người mua thành công, 5 người thất bại.
 
-```bash
-# unit tests
-$ npm run test
+### Giai đoạn 2: Tích hợp Kafka Producer & Xử lý Lỗi Hệ thống
 
-# e2e tests
-$ npm run test:e2e
+- Tích hợp `@nestjs/microservices` và thiết lập Kafka Client (Producer).
+- Bắn thông tin người dùng mua thành công vào topic `order_created`.
+- **Xử lý Lỗi Thực Tế:**
+  - **Lỗi `ECONNREFUSED` (Startup Race Condition):** NestJS khởi động nhanh hơn Kafka. Đã khắc phục bằng cách thiết lập vòng lặp _Retry_ kết nối sau mỗi 2 giây cho đến khi Kafka Broker mở cổng.
+  - **Lỗi `Topic-partition not found`:** Kafka bị ngợp khi tự động tạo topic dưới áp lực của 5 requests cùng lúc. Đã khắc phục bằng cách dùng `Kafka Admin` chủ động tạo sẵn (Pre-create) topic ngay lúc app khởi động.
+- Bổ sung **Kafka UI** vào Docker Compose để giám sát trực quan các messages đang chờ trong hàng đợi.
 
-# test coverage
-$ npm run test:cov
-```
+---
 
-## Deployment
+## 🚦 Hướng Dẫn Chạy Môi Trường Cục Bộ (Local)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**1. Khởi động hạ tầng Docker:**
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker-compose up --build -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**2. Chạy kịch bản giả lập Race condition:**
 
-## Resources
+```bash
+node test.js
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+**3. Kết quả mong đợi:**
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Terminal của file test in ra: 5 User "Mua THÀNH CÔNG" và 5 User "Rất tiếc, sản phẩm đã bán hết!".
+- Terminal của Docker in ra 5 log xác nhận đã đẩy event vào Kafka.
+- Trên Kafka UI, topic order_created xuất hiện 5 messages chứa ID đơn hàng.
