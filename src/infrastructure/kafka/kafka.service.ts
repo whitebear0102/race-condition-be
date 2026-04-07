@@ -64,12 +64,13 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     await this.kafkaClient.close();
   }
 
-  sendOrderEvent(productId: number, userId: number) {
+  sendOrderEvent(productId: number, userId: number, idempotencyKey: string) {
     const topic = 'order_created';
     const message = {
       productId,
       userId,
       timestamp: new Date().toISOString(),
+      idempotencyKey,
     };
 
     console.log(

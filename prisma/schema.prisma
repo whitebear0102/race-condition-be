@@ -11,7 +11,7 @@ datasource db {
 
 model Product {
   id        Int      @id @default(autoincrement())
-  name      String?  @db.VarChar(255)
+  name      String?
   stock     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -19,14 +19,16 @@ model Product {
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
-  productId Int
-  userId    Int
-  status    OrderStatus @default(PENDING)
-  createdAt DateTime    @default(now())
+  id             Int         @id @default(autoincrement())
+  productId      Int
+  userId         Int
+  idempotencyKey String      @unique 
+  
+  status         OrderStatus @default(PENDING)
+  createdAt      DateTime    @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
+  
   @@index([productId])
   @@index([userId])
 }

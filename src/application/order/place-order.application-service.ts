@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { KafkaService } from '../../infrastructure/kafka/kafka.service';
 import { RedisStockService } from '../../infrastructure/redis/redis-stock.service';
+import { randomUUID } from 'node:crypto';
+import { v4 as uuidv4 } from 'uuid'; // npm install uuid
 
 @Injectable()
 export class PlaceOrderApplicationService {
@@ -9,7 +11,7 @@ export class PlaceOrderApplicationService {
     private readonly kafka: KafkaService,
   ) {}
 
-  async placeOrder(productId: number, userId: number) {
+  async placeOrder(productId: number, userId: number, idempotencyKey: string) {
     const reserved = await this.redisStock.reserveProduct(productId);
 
     if (!reserved) {
@@ -19,7 +21,7 @@ export class PlaceOrderApplicationService {
       });
     }
 
-    this.kafka.sendOrderEvent(productId, userId);
+    this.kafka.sendOrderEvent(productId, userId, idempotencyKey);
 
     return {
       status: 'success',
