@@ -17,7 +17,11 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -25,11 +29,13 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/microservices": "^11.1.17",
     "@nestjs/platform-express": "^11.0.1",
+    "@prisma/adapter-mariadb": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "axios": "^1.14.0",
     "ioredis": "^5.10.1",
     "joi": "^18.1.2",
     "kafkajs": "^2.2.4",
+    "mariadb": "^3.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -43,6 +49,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "dotenv": "^17.4.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

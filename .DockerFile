@@ -16,8 +16,8 @@ RUN npm install
 # Copy toàn bộ source code vào container
 COPY . .
 
-# Build project NestJS
-RUN npm run build
+# Sinh Prisma Client (thư mục src/generated bị .gitignore) rồi build NestJS
+RUN npx prisma generate && npm run build
 
 # Mở port 3000 để giao tiếp
 EXPOSE 3000

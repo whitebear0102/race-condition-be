@@ -56,6 +56,10 @@ services:
     restart: on-failure
     ports:
       - '3000:3000'
+    volumes:
+      - .:/usr/src/app
+      - server_node_modules:/usr/src/app/node_modules
+    command: sh -c "npm install && npx prisma generate && rm -rf dist *.tsbuildinfo && npm run start:dev"
     depends_on:
       - mysql
       - redis
@@ -77,5 +81,16 @@ services:
     depends_on:
       - kafka
 
+  # 6. Redis Insight (Giao diện trực quan quản lý Redis)
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: race_condition_redisinsight
+    restart: always
+    ports:
+      - '5540:5540' # Bạn sẽ truy cập qua http://localhost:5540
+    depends_on:
+      - redis
+
 volumes:
   mysql_data:
+  server_node_modules:
