@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisStockService } from '../../infrastructure/redis/redis-stock.service';
 import type { CreateProductDto } from './dto/create-product.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ProductManagementApplicationService {
@@ -13,6 +14,7 @@ export class ProductManagementApplicationService {
   async createProduct(dto: CreateProductDto) {
     const product = await this.prisma.product.create({
       data: {
+        productId: uuidv4(),
         name: dto.name ?? null,
         stock: dto.stock,
       },

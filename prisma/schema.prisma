@@ -11,6 +11,7 @@ datasource db {
 
 model Product {
   id        Int      @id @default(autoincrement())
+  productId String   @unique
   name      String?
   stock     Int      @default(0)
   createdAt DateTime @default(now())

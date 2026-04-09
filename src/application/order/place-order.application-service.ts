@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { KafkaService } from '../../infrastructure/kafka/kafka.service';
 import { RedisStockService } from '../../infrastructure/redis/redis-stock.service';
-import { randomUUID } from 'node:crypto';
-import { v4 as uuidv4 } from 'uuid'; // npm install uuid
 
 @Injectable()
 export class PlaceOrderApplicationService {
